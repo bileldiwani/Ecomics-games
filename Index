@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeux de la concurrence parfaite</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EEF3F7; --surface:#FFFFFF; --ink:#10263A; --muted:#566B7D; --line:#D3DDE6;
+  --accent:#D9304A; --on-accent:#FFFFFF;
+  --ok:#1B7F54; --on-ok:#FFFFFF; --ok-bg:#E3F4EB;
+  --warn:#9A5200; --on-warn:#FFFFFF; --warn-bg:#FDF0DC;
+  --f-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --f-body:'Public Sans',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1620; --surface:#142230; --ink:#E7EEF4; --muted:#9AAEBF; --line:#27394A;
+    --accent:#FF5A73; --on-accent:#2A0A10;
+    --ok:#55CF92; --on-ok:#06210F; --ok-bg:#123325;
+    --warn:#F2A950; --on-warn:#2E1B00; --warn-bg:#3A2A10;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1620; --surface:#142230; --ink:#E7EEF4; --muted:#9AAEBF; --line:#27394A;
+  --accent:#FF5A73; --on-accent:#2A0A10;
+  --ok:#55CF92; --on-ok:#06210F; --ok-bg:#123325;
+  --warn:#F2A950; --on-warn:#2E1B00; --warn-bg:#3A2A10;
+  color-scheme:dark;
+}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:16px; line-height:1.5;
+  padding-block:24px 48px; margin:0;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+button{font:inherit; color:inherit; cursor:pointer}
+button:focus-visible{outline:3px solid var(--ink); outline-offset:2px}
+.tag:focus-visible{outline:none; box-shadow:inset 0 0 0 3px var(--ink)}
+.wrap{max-width:720px; margin:0 auto}
+.kicker{font:600 .78rem var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+h1{font:700 clamp(1.9rem,7vw,2.8rem)/1.05 var(--f-display); margin:8px 0 6px; text-wrap:balance; letter-spacing:-.01em}
+.sub{color:var(--muted); max-width:60ch}
+h2{font:600 1.15rem/1.3 var(--f-display); margin:0 0 4px; text-wrap:balance}
+.tabs{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:20px}
+.tab{padding:10px 6px; border:1px solid var(--line); background:var(--surface); border-radius:10px; font-weight:600; font-size:.92rem; text-align:center}
+.tab small{display:block; font:500 .74rem var(--f-mono); margin-top:2px; opacity:.75}
+.tab[aria-selected="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:14px}
+.hint{color:var(--muted); font-size:.92rem; margin:0 0 14px}
+.seg{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin-top:14px}
+.segbtn{padding:8px 8px; border:1px solid var(--line); background:transparent; border-radius:10px; font-size:.86rem; font-weight:500}
+.segbtn[aria-pressed="true"]{background:var(--surface); border-color:var(--ink); font-weight:600}
+
+.tag{--hole:var(--surface); display:inline-flex; align-items:center; gap:8px; border:0;
+  padding:8px 14px 8px 26px; font:600 .86rem var(--f-mono); line-height:1.2;
+  background:radial-gradient(circle at 15px 50%, var(--hole) 0 2.6px, transparent 3.2px), var(--accent);
+  color:var(--on-accent); clip-path:polygon(13px 0,100% 0,100% 100%,13px 100%,0 50%); text-align:left}
+.tag>span:first-child{opacity:.8}
+.tag[aria-pressed="true"]{background:radial-gradient(circle at 15px 50%, var(--hole) 0 2.6px, transparent 3.2px), var(--ink); color:var(--bg)}
+.tag:disabled{background:radial-gradient(circle at 15px 50%, var(--hole) 0 2.6px, transparent 3.2px), var(--line); color:var(--muted); cursor:default}
+.tag.good{background:radial-gradient(circle at 15px 50%, var(--hole) 0 2.6px, transparent 3.2px), var(--ok); color:var(--on-ok)}
+.tag.bad{background:radial-gradient(circle at 15px 50%, var(--hole) 0 2.6px, transparent 3.2px), var(--warn); color:var(--on-warn)}
+.tag.miss{background:radial-gradient(circle at 15px 50%, var(--hole) 0 2.6px, transparent 3.2px), var(--ok-bg); color:var(--ok)}
+.tag.mini{padding:5px 12px 5px 24px; font-size:.78rem}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+
+.defs{display:flex; flex-direction:column; gap:8px; margin-top:14px}
+.def{display:flex; flex-direction:column; align-items:flex-start; gap:8px; width:100%; text-align:left;
+  padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:transparent; min-width:0}
+.def:hover:not(:disabled){border-color:var(--ink)}
+.def.ok{border-color:var(--ok); background:var(--ok-bg); cursor:default}
+.def:disabled{color:var(--ink)}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.msg{min-height:1.5em; margin:12px 0 0; font-weight:500}
+.msg.ok{color:var(--ok)} .msg.ko{color:var(--warn)}
+.end{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px}
+.end p{margin:0}
+.row{display:flex; flex-wrap:wrap; gap:8px}
+.btn{background:var(--ink); color:var(--bg); border:0; border-radius:10px; padding:11px 18px; font-weight:600}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+.btn:disabled{opacity:.45; cursor:default}
+
+.prog{display:flex; justify-content:space-between; font:500 .8rem var(--f-mono); color:var(--muted); margin-bottom:8px}
+.bar{height:6px; border-radius:99px; background:var(--line); overflow:hidden}
+.bar i{display:block; height:100%; background:var(--ink); transition:width .3s}
+.q{font:500 1.2rem/1.4 var(--f-display); margin:18px 0; text-wrap:pretty}
+.vf{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+.vfbtn{padding:16px 8px; border:2px solid var(--line); border-radius:12px; background:transparent; font:700 1.1rem var(--f-display)}
+.vfbtn:hover:not(:disabled){border-color:var(--ink)}
+.vfbtn:disabled{cursor:default; color:var(--ink)}
+.vfbtn.good{border-color:var(--ok); background:var(--ok-bg); color:var(--ok)}
+.vfbtn.bad{border-color:var(--warn); background:var(--warn-bg); color:var(--warn)}
+.fb{margin:14px 0; padding:12px 14px; border-radius:10px; border-left:4px solid}
+.fb.good{background:var(--ok-bg); border-color:var(--ok)}
+.fb.bad{background:var(--warn-bg); border-color:var(--warn)}
+
+.case-t{font:600 .78rem var(--f-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:16px 0 4px}
+.case{font:500 1.15rem/1.4 var(--f-display); margin:0 0 16px; text-wrap:pretty}
+.st{font-weight:500; font-size:.76rem; opacity:.9}
+.score-big{font:700 2.4rem/1 var(--f-display)}
+@media (prefers-reduced-motion: reduce){.shake{animation:none}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">Économie · 3ème E&amp;G · 2026/2027</p>
+  <h1>Concurrence pure et parfaite</h1>
+  <p class="sub">Trois jeux pour réviser la section I : les hypothèses, les conditions et les marchés réels.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-act="tab" data-t="match" aria-selected="true">Associer<small id="sc-match">—</small></button>
+    <button class="tab" role="tab" data-act="tab" data-t="vf" aria-selected="false">Vrai ou faux<small id="sc-vf">—</small></button>
+    <button class="tab" role="tab" data-act="tab" data-t="diag" aria-selected="false">Diagnostic<small id="sc-diag">—</small></button>
+  </div>
+
+  <div id="p-match"></div>
+  <div id="p-vf" hidden></div>
+  <div id="p-diag" hidden></div>
+</div>
+
+<script>
+"use strict";
+var $ = function(s){ return document.querySelector(s); };
+var shuffle = function(a){ a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+
+var HYP = [
+  {id:"H1", name:"Atomicité", def:"Offreurs et demandeurs très nombreux et de petite taille : aucun n'influence le prix. Chacun est preneur de prix.", cond:"Un grand nombre de vendeurs et un grand nombre d'acheteurs."},
+  {id:"H2", name:"Fluidité", def:"Tout agent peut entrer sur le marché pour acheter ou vendre, et peut s'en retirer librement.", cond:"Les vendeurs d'un produit ont la liberté d'entrer dans n'importe quel marché."},
+  {id:"H3", name:"Homogénéité", def:"Les produits proposés sont identiques : mêmes caractéristiques, mêmes performances.", cond:"Les produits échangés sont identiques."},
+  {id:"H4", name:"Transparence", def:"Tous les agents disposent d'une information parfaite et gratuite sur les conditions du marché et le prix.", cond:"Les demandeurs ont des informations sur le niveau de prix sur le marché du produit."},
+  {id:"H5", name:"Mobilité", def:"Les facteurs de production peuvent, à tout moment, passer du marché d'un produit à celui d'un autre.", cond:"Les facteurs de production peuvent se déplacer d'un marché de produit à un autre."}
+];
+var byId = function(id){ return HYP.filter(function(h){ return h.id === id; })[0]; };
+
+/* ---------- Jeu 1 : associer ---------- */
+var M = {round:0, order:[], done:{}, err:{}, sel:null, pt:0, pts:[null,null], msg:"", msgc:"", shake:null};
+function mInit(r){ M.round = r; M.order = shuffle(HYP.map(function(h){ return h.id; })); M.done = {}; M.err = {}; M.sel = null; M.pt = 0; M.msg = ""; M.msgc = ""; M.shake = null; M.pts[r] = null; mScore(); }
+function mScore(){
+  var n = 0, tot = 0;
+  M.pts.forEach(function(p){ if (p !== null) { n++; tot += p; } });
+  $("#sc-match").textContent = n ? tot + "/" + (n * 5) : "—";
+}
+function mRender(){
+  var complete = Object.keys(M.done).length === 5;
+  var text = function(h){ return M.round === 0 ? h.def : h.cond; };
+  var html = '<div class="seg">' +
+    '<button class="segbtn" data-act="round" data-r="0" aria-pressed="' + (M.round === 0) + '">Manche 1 · Définitions</button>' +
+    '<button class="segbtn" data-act="round" data-r="1" aria-pressed="' + (M.round === 1) + '">Manche 2 · Conditions</button></div>' +
+    '<div class="card"><h2>' + (M.round === 0 ? "Associez chaque hypothèse à sa définition" : "Associez chaque condition à l'hypothèse correspondante") + '</h2>' +
+    '<p class="hint">Touchez une étiquette, puis la carte qui lui correspond.</p><div class="chips">';
+  HYP.forEach(function(h){
+    html += '<button class="tag" data-act="chip" data-id="' + h.id + '"' + (M.done[h.id] ? " disabled" : "") + ' aria-pressed="' + (M.sel === h.id) + '"><span>' + h.id + '</span>' + h.name + '</button>';
+  });
+  html += '</div><div class="defs">';
+  M.order.forEach(function(id){
+    var h = byId(id), ok = M.done[id];
+    html += '<button class="def' + (ok ? " ok" : "") + (M.shake === id ? " shake" : "") + '" data-act="def" data-id="' + id + '"' + (ok ? " disabled" : "") + '>' +
+      (ok ? '<span class="tag good mini" style="--hole:var(--ok-bg)"><span>' + h.id + '</span>' + h.name + '</span>' : "") +
+      '<span>' + text(h) + '</span></button>';
+  });
+  html += '</div><p class="msg ' + M.msgc + '" aria-live="polite">' + M.msg + '</p>';
+  if (complete) {
+    html += '<div class="end"><p><b>Manche terminée : ' + M.pt + '/5</b> du premier coup.</p><div class="row">' +
+      (M.round === 0 ? '<button class="btn" data-act="round" data-r="1">Passer à la manche 2</button>' : "") +
+      '<button class="btn ghost" data-act="rematch">Refaire cette manche</button></div></div>';
+  }
+  $("#p-match").innerHTML = html + "</div>";
+}
+function mClick(act, el){
+  if (act === "round") { mInit(+el.dataset.r); mRender(); return; }
+  if (act === "rematch") { mInit(M.round); mRender(); return; }
+  if (act === "chip") { M.sel = (M.sel === el.dataset.id) ? null : el.dataset.id; M.msg = ""; mRender(); return; }
+  if (act === "def") {
+    var id = el.dataset.id;
+    if (!M.sel) { M.msg = "Choisissez d'abord une étiquette."; M.msgc = ""; mRender(); return; }
+    if (M.sel === id) {
+      M.done[id] = true;
+      if (!M.err[id]) M.pt++;
+      M.msg = "Exact : " + byId(id).name + "."; M.msgc = "ok"; M.sel = null;
+      if (Object.keys(M.done).length === 5) { M.pts[M.round] = M.pt; mScore(); }
+      mRender();
+    } else {
+      M.err[M.sel] = true; M.msg = "Ce n'est pas la bonne carte pour " + byId(M.sel).name + ". Réessayez."; M.msgc = "ko"; M.shake = id;
+      mRender(); M.shake = null;
+    }
+  }
+}
+
+/* ---------- Jeu 2 : vrai ou faux ---------- */
+var VF = [
+  {q:"La concurrence pure et parfaite est une forme théorique du marché, loin d'être réaliste.", a:true, e:"C'est une structure théorique, basée sur des conditions précises."},
+  {q:"Pour parler de concurrence pure et parfaite, 3 conditions sur 5 suffisent.", a:false, e:"Les 5 conditions doivent être remplies simultanément."},
+  {q:"Sur un marché de concurrence pure et parfaite, chaque vendeur fixe librement son prix.", a:false, e:"Chacun est preneur de prix (price taker) : aucun n'a d'influence sur le prix."},
+  {q:"Il suffit qu'une seule des 5 conditions ne soit pas remplie pour que la concurrence soit imparfaite.", a:true, e:"C'est la remarque du cours."},
+  {q:"Avec l'homogénéité, le consommateur achète indifféremment le produit de l'entreprise A ou de l'entreprise B.", a:true, e:"Les produits sont identiques, avec les mêmes caractéristiques et les mêmes performances."},
+  {q:"La transparence du marché suppose une information parfaite, mais payante.", a:false, e:"L'information doit être parfaite et gratuite."},
+  {q:"Trois opérateurs se partagent le marché de la téléphonie mobile en Tunisie : l'atomicité n'est pas respectée.", a:true, e:"Il y a un très grand nombre de demandeurs, mais seulement 3 offreurs."},
+  {q:"Sur le marché des voitures d'occasion, les produits sont homogènes.", a:false, e:"Les voitures sont différenciées, et il n'y a pas de transparence parfaite sur les prix."},
+  {q:"Pour exercer le métier de taxi, l'accord de la municipalité est nécessaire : la fluidité n'est pas respectée.", a:true, e:"Cet accord est une barrière à l'entrée sur le marché."},
+  {q:"La mobilité des facteurs de production signifie qu'ils peuvent passer du marché d'un produit à un autre.", a:true, e:"C'est la définition de l'hypothèse H5."}
+];
+var F = {order:[], i:0, ans:null, score:0};
+function fInit(){ F.order = shuffle(VF.map(function(_, k){ return k; })); F.i = 0; F.ans = null; F.score = 0; $("#sc-vf").textContent = "—"; }
+function endCard(score, max, act){
+  var r = score / max;
+  var m = r === 1 ? "Parfait. Vous maîtrisez cette partie." : r >= 0.7 ? "Très bien. Relisez les points manqués et refaites une partie." : "Relisez la section I, puis rejouez : les cartes sont mélangées à chaque partie.";
+  return '<div class="card"><p class="kicker">Résultat</p><p class="score-big">' + score + "/" + max + '</p><p>' + m + '</p><button class="btn" data-act="' + act + '">Rejouer</button></div>';
+}
+function fRender(){
+  var R = $("#p-vf");
+  if (F.i >= VF.length) { R.innerHTML = endCard(F.score, VF.length, "vfreplay"); return; }
+  var q = VF[F.order[F.i]], answered = F.ans !== null, right = answered && F.ans === q.a;
+  R.innerHTML = '<div class="card"><div class="prog"><span>Question ' + (F.i + 1) + " / " + VF.length + '</span><span>Score ' + F.score + '</span></div>' +
+    '<div class="bar"><i style="width:' + ((F.i + (answered ? 1 : 0)) / VF.length * 100) + '%"></i></div>' +
+    '<p class="q">' + q.q + '</p><div class="vf">' +
+    '<button class="vfbtn' + (answered && q.a === true ? " good" : "") + (answered && F.ans === true && !q.a ? " bad" : "") + '" data-act="vf" data-v="1"' + (answered ? " disabled" : "") + '>Vrai</button>' +
+    '<button class="vfbtn' + (answered && q.a === false ? " good" : "") + (answered && F.ans === false && q.a ? " bad" : "") + '" data-act="vf" data-v="0"' + (answered ? " disabled" : "") + '>Faux</button></div>' +
+    (answered ? '<div class="fb ' + (right ? "good" : "bad") + '" aria-live="polite"><b>' + (right ? "Exact." : "À revoir.") + '</b> ' + q.e + '</div><button class="btn" data-act="vfnext">' + (F.i === VF.length - 1 ? "Voir le résultat" : "Question suivante") + '</button>' : "") +
+    "</div>";
+}
+function fClick(act, el){
+  if (act === "vf" && F.ans === null) {
+    F.ans = el.dataset.v === "1";
+    if (F.ans === VF[F.order[F.i]].a) F.score++;
+    $("#sc-vf").textContent = F.score + "/" + (F.i + 1);
+  } else if (act === "vfnext") { F.i++; F.ans = null; if (F.i >= VF.length) $("#sc-vf").textContent = F.score + "/" + VF.length; }
+  else if (act === "vfreplay") { fInit(); }
+  fRender();
+}
+
+/* ---------- Jeu 3 : diagnostic ---------- */
+var D = [
+  {t:"Le marché de la fraise de Korba", txt:"Un grand nombre d'agriculteurs et de commerçants, un grand nombre de demandeurs. Acheteurs et vendeurs sont parfaitement informés sur la qualité et le prix. Le marché est accessible à tous. Un produit unique : la fraise « camarosa ». Seul le facteur travail est parfaitement mobile.", ans:["H5"], why:"Seule la mobilité des facteurs de production n'est pas assurée : la mobilité est parfaite pour le travail seulement, pas pour le capital."},
+  {t:"Le service de taxi", txt:"Pour exercer, il est nécessaire d'avoir l'accord de la municipalité.", ans:["H2"], why:"L'entrée sur ce marché nécessite l'accord de la municipalité, ce qui constitue une barrière à l'entrée."},
+  {t:"La téléphonie mobile en Tunisie", txt:"Trois opérateurs se partagent le marché.", ans:["H1"], why:"Il y a un très grand nombre de demandeurs, mais seulement 3 offreurs."},
+  {t:"Le marché des voitures neuves", txt:"Quelques constructeurs de grande taille se partagent le marché et proposent chacun leurs modèles.", ans:["H1","H3"], why:"Il y a un petit nombre d'offreurs de grande taille, qui offrent des produits différenciés."},
+  {t:"Les médicaments sous brevet", txt:"On ne peut les produire que si on achète au préalable leur brevet.", ans:["H1","H2","H4"], why:"Il y a un petit nombre d'offreurs, pas de transparence parfaite sur la qualité et les prix, et l'entrée sur le marché est conditionnée par l'achat du brevet."},
+  {t:"Le marché des voitures d'occasion", txt:"Chaque voiture est différente : année, kilométrage, état.", ans:["H3","H4"], why:"Les produits sont différenciés et il n'y a pas de transparence parfaite, notamment sur les prix."}
+];
+var G = {order:[], i:0, pick:{}, checked:false, score:0};
+function gInit(){ G.order = shuffle(D.map(function(_, k){ return k; })); G.i = 0; G.pick = {}; G.checked = false; G.score = 0; $("#sc-diag").textContent = "—"; }
+function gRender(){
+  var R = $("#p-diag");
+  if (G.i >= D.length) { R.innerHTML = endCard(G.score, D.length, "dreplay"); return; }
+  var c = D[G.order[G.i]];
+  var html = '<div class="card"><div class="prog"><span>Marché ' + (G.i + 1) + " / " + D.length + '</span><span>Score ' + G.score + '</span></div>' +
+    '<div class="bar"><i style="width:' + ((G.i + (G.checked ? 1 : 0)) / D.length * 100) + '%"></i></div>' +
+    '<p class="case-t">Quelles hypothèses ne sont pas remplies ?</p><h2>' + c.t + '</h2><p class="case">' + c.txt + '</p><div class="chips">';
+  HYP.forEach(function(h){
+    var sel = !!G.pick[h.id], good = c.ans.indexOf(h.id) > -1, cls = "", st = "";
+    if (G.checked) {
+      if (sel && good) { cls = " good"; st = " ✓"; }
+      else if (sel && !good) { cls = " bad"; st = " ✗ à écarter"; }
+      else if (!sel && good) { cls = " miss"; st = " manquée"; }
+    }
+    html += '<button class="tag' + cls + '" data-act="dpick" data-id="' + h.id + '" aria-pressed="' + (sel && !G.checked) + '"' + (G.checked ? " disabled" : "") + '><span>' + h.id + '</span>' + h.name + '<span class="st">' + st + '</span></button>';
+  });
+  html += "</div>";
+  if (!G.checked) {
+    html += '<p class="hint" style="margin-top:14px">Touchez toutes les hypothèses non remplies, puis validez.</p><button class="btn" data-act="dcheck"' + (Object.keys(G.pick).length ? "" : " disabled") + ">Valider</button>";
+  } else {
+    var exact = c.ans.length === Object.keys(G.pick).length && c.ans.every(function(a){ return G.pick[a]; });
+    html += '<div class="fb ' + (exact ? "good" : "bad") + '" aria-live="polite" style="margin-top:16px"><b>' + (exact ? "Diagnostic exact." : "Diagnostic incomplet.") + '</b> ' + c.why + '</div><button class="btn" data-act="dnext">' + (G.i === D.length - 1 ? "Voir le résultat" : "Marché suivant") + "</button>";
+  }
+  R.innerHTML = html + "</div>";
+}
+function gClick(act, el){
+  if (act === "dpick" && !G.checked) { var id = el.dataset.id; if (G.pick[id]) delete G.pick[id]; else G.pick[id] = true; }
+  else if (act === "dcheck" && !G.checked) {
+    var c = D[G.order[G.i]];
+    G.checked = true;
+    if (c.ans.length === Object.keys(G.pick).length && c.ans.every(function(a){ return G.pick[a]; })) G.score++;
+    $("#sc-diag").textContent = G.score + "/" + (G.i + 1);
+  } else if (act === "dnext") { G.i++; G.pick = {}; G.checked = false; if (G.i >= D.length) $("#sc-diag").textContent = G.score + "/" + D.length; }
+  else if (act === "dreplay") { gInit(); }
+  gRender();
+}
+
+/* ---------- navigation ---------- */
+document.addEventListener("click", function(e){
+  var el = e.target.closest("[data-act]");
+  if (!el) return;
+  var act = el.dataset.act;
+  if (act === "tab") {
+    ["match","vf","diag"].forEach(function(t){ $("#p-" + t).hidden = (t !== el.dataset.t); });
+    document.querySelectorAll(".tab").forEach(function(b){ b.setAttribute("aria-selected", String(b === el)); });
+    return;
+  }
+  if (["round","rematch","chip","def"].indexOf(act) > -1) mClick(act, el);
+  else if (["vf","vfnext","vfreplay"].indexOf(act) > -1) fClick(act, el);
+  else gClick(act, el);
+});
+mInit(0); mRender(); fInit(); fRender(); gInit(); gRender();
+</script>
+</body>
+</html>
